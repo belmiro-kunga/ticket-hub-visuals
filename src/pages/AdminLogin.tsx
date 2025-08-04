@@ -6,17 +6,22 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
-import { Ticket, AlertCircle, Eye, EyeOff, Shield } from "lucide-react";
+import { Shield, AlertCircle, Eye, EyeOff, ArrowLeft } from "lucide-react";
 
-export default function Login() {
+export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { loginAdmin, isAuthenticated, user, isLoading } = useAuth();
 
-  // Redirect if already authenticated
-  if (isAuthenticated) {
+  // Redirect if already authenticated as admin
+  if (isAuthenticated && user?.role === 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Redirect if authenticated as regular user
+  if (isAuthenticated && user?.role !== 'admin') {
     return <Navigate to="/" replace />;
   }
 
@@ -29,31 +34,31 @@ export default function Login() {
       return;
     }
 
-    const success = await login(email, password);
+    const success = await loginAdmin(email, password);
     if (!success) {
-      setError('Email ou senha incorretos. Tente novamente.');
+      setError('Credenciais de administrador inválidas ou acesso negado.');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-6">
         {/* Logo/Brand */}
         <div className="text-center">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-xl flex items-center justify-center mb-4">
-            <Ticket className="h-8 w-8 text-white" />
+          <div className="mx-auto w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center mb-4">
+            <Shield className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Ticket Hub</h1>
-          <p className="text-sm text-gray-600">Sistema de Suporte</p>
+          <h1 className="text-2xl font-bold text-gray-900">Ticket Hub Admin</h1>
+          <p className="text-sm text-gray-600">Painel Administrativo</p>
         </div>
 
-        <Card className="shadow-lg">
+        <Card className="shadow-lg border-slate-200">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center text-blue-800">
-              Login de Usuário
+            <CardTitle className="text-2xl font-bold text-center text-slate-800">
+              Login Administrativo
             </CardTitle>
             <CardDescription className="text-center">
-              Faça login para criar e acompanhar suas solicitações de suporte
+              Acesso restrito para administradores do sistema
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -66,11 +71,11 @@ export default function Login() {
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email Administrativo</Label>
                 <Input 
                   id="email" 
                   type="email" 
-                  placeholder="seu.email@empresa.com"
+                  placeholder="admin@empresa.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
@@ -84,7 +89,7 @@ export default function Login() {
                   <Input 
                     id="password" 
                     type={showPassword ? "text" : "password"}
-                    placeholder="Sua senha"
+                    placeholder="Sua senha administrativa"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isLoading}
@@ -109,44 +114,41 @@ export default function Login() {
               
               <Button 
                 type="submit" 
-                className="w-full" 
+                className="w-full bg-slate-800 hover:bg-slate-700" 
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Entrando...
+                    Verificando...
                   </>
                 ) : (
-                  'Entrar'
+                  <>
+                    <Shield className="h-4 w-4 mr-2" />
+                    Acessar Painel Admin
+                  </>
                 )}
               </Button>
             </form>
             
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <h3 className="text-sm font-medium text-blue-900 mb-2">Contas de Usuário:</h3>
-              <div className="space-y-1 text-xs text-blue-700">
-                <p><strong>joao.silva@empresa.com</strong> - Senha: 123456</p>
-                <p><strong>maria.santos@empresa.com</strong> - Senha: 123456</p>
-                <p><strong>pedro.costa@empresa.com</strong> - Senha: 123456</p>
-                <p><strong>ana.ferreira@empresa.com</strong> - Senha: 123456</p>
+            <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+              <h3 className="text-sm font-medium text-slate-900 mb-2">Contas Administrativas:</h3>
+              <div className="space-y-1 text-xs text-slate-700">
+                <p><strong>admin@empresa.com</strong> - Senha: admin123</p>
+                <p><strong>gerente@empresa.com</strong> - Senha: gerente123</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <div className="text-center text-sm text-gray-600">
-          <p>Precisa de ajuda? Entre em contato com o suporte técnico</p>
-        </div>
-        
         <div className="text-center">
           <Button 
             variant="ghost" 
-            onClick={() => window.location.href = '/admin/login'}
+            onClick={() => window.location.href = '/login'}
             className="gap-2 text-slate-600 hover:text-slate-800"
           >
-            <Shield className="h-4 w-4" />
-            Acesso Administrativo
+            <ArrowLeft className="h-4 w-4" />
+            Voltar para Login de Usuário
           </Button>
         </div>
       </div>

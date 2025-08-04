@@ -7,12 +7,14 @@ interface User {
   phone?: string;
   department: string;
   avatar?: string;
+  role: 'admin' | 'user';
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
+  loginAdmin: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -28,7 +30,8 @@ const mockUsers: (User & { password: string })[] = [
     password: '123456',
     phone: '+244 923 456 789',
     department: 'Tecnologia da Informação',
-    avatar: 'JS'
+    avatar: 'JS',
+    role: 'user'
   },
   {
     id: '2',
@@ -37,7 +40,8 @@ const mockUsers: (User & { password: string })[] = [
     password: '123456',
     phone: '+244 924 567 890',
     department: 'Recursos Humanos',
-    avatar: 'MS'
+    avatar: 'MS',
+    role: 'user'
   },
   {
     id: '3',
@@ -46,7 +50,8 @@ const mockUsers: (User & { password: string })[] = [
     password: '123456',
     phone: '+244 925 678 901',
     department: 'Financeiro',
-    avatar: 'PC'
+    avatar: 'PC',
+    role: 'user'
   },
   {
     id: '4',
@@ -55,7 +60,32 @@ const mockUsers: (User & { password: string })[] = [
     password: '123456',
     phone: '+244 926 789 012',
     department: 'Vendas',
-    avatar: 'AF'
+    avatar: 'AF',
+    role: 'user'
+  }
+];
+
+// Mock admin users
+const mockAdminUsers: (User & { password: string })[] = [
+  {
+    id: 'admin1',
+    name: 'Administrador Sistema',
+    email: 'admin@empresa.com',
+    password: 'admin123',
+    phone: '+244 900 000 000',
+    department: 'Administração',
+    avatar: 'AD',
+    role: 'admin'
+  },
+  {
+    id: 'admin2',
+    name: 'Gerente Geral',
+    email: 'gerente@empresa.com',
+    password: 'gerente123',
+    phone: '+244 900 000 001',
+    department: 'Gerência',
+    avatar: 'GG',
+    role: 'admin'
   }
 ];
 
@@ -97,6 +127,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
+  const loginAdmin = async (email: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const foundAdmin = mockAdminUsers.find(u => u.email === email && u.password === password);
+    
+    if (foundAdmin) {
+      const { password: _, ...adminWithoutPassword } = foundAdmin;
+      setUser(adminWithoutPassword);
+      localStorage.setItem('ticket-hub-user', JSON.stringify(adminWithoutPassword));
+      setIsLoading(false);
+      return true;
+    }
+    
+    setIsLoading(false);
+    return false;
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('ticket-hub-user');
@@ -106,6 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     isAuthenticated: !!user,
     login,
+    loginAdmin,
     logout,
     isLoading
   };

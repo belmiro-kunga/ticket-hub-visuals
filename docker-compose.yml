@@ -1,6 +1,64 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ticket-hub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ticket_hub
+      POSTGRES_USER: ticket_admin
+      POSTGRES_PASSWORD: ticket_password_2024
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - ticket-hub-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticket_admin -d ticket_hub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ticket-hub-backend
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=ticket_hub
+      - DB_USER=ticket_admin
+      - DB_PASSWORD=ticket_password_2024
+      - DATABASE_URL=postgresql://ticket_admin:ticket_password_2024@postgres:5432/ticket_hub
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production-2024
+      - JWT_EXPIRES_IN=24h
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ticket-hub-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Application
   ticket-hub-visuals:
     build:
       context: .
@@ -25,11 +83,22 @@ services:
     environment:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
+      - VITE_API_URL=http://localhost:3001/api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
     stdin_open: true
     tty: true
     restart: unless-stopped
     networks:
       - ticket-hub-network
+
+# Persistent volumes
+volumes:
+  postgres_data:
+    driver: local
 
 networks:
   ticket-hub-network:

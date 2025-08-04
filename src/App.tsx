@@ -3,8 +3,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { TicketsProvider } from "@/contexts/TicketsContext";
+import { AuthProvider } from './contexts/AuthContext';
+import { TicketsProvider } from './contexts/TicketsContext';
+import { UsersProvider } from './contexts/UsersContext';
 import { ProtectedAdminRoute } from "@/components/ProtectedAdminRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -23,49 +24,51 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TicketsProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* User Routes */}
-              <Route path="/" element={<SupportRequest />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/my-tickets" element={<MyTickets />} />
-              
-              {/* Admin Routes */}
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/dashboard" element={
-                <ProtectedAdminRoute>
-                  <Index />
-                </ProtectedAdminRoute>
-              } />
-              <Route path="/tickets" element={
-                <ProtectedAdminRoute>
-                  <Tickets />
-                </ProtectedAdminRoute>
-              } />
-              <Route path="/users" element={
-                <ProtectedAdminRoute>
-                  <Users />
-                </ProtectedAdminRoute>
-              } />
-              <Route path="/reports" element={
-                <ProtectedAdminRoute>
-                  <Reports />
-                </ProtectedAdminRoute>
-              } />
-              <Route path="/settings" element={
-                <ProtectedAdminRoute>
-                  <Settings />
-                </ProtectedAdminRoute>
-              } />
-              
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <UsersProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                {/* User Routes */}
+                <Route path="/" element={<SupportRequest />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/my-tickets" element={<MyTickets />} />
+                
+                {/* Admin Routes */}
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/dashboard" element={
+                  <ProtectedAdminRoute>
+                    <Index />
+                  </ProtectedAdminRoute>
+                } />
+                <Route path="/tickets" element={
+                  <ProtectedAdminRoute>
+                    <Tickets />
+                  </ProtectedAdminRoute>
+                } />
+                <Route path="/users" element={
+                  <ProtectedAdminRoute>
+                    <Users />
+                  </ProtectedAdminRoute>
+                } />
+                <Route path="/reports" element={
+                  <ProtectedAdminRoute>
+                    <Reports />
+                  </ProtectedAdminRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedAdminRoute>
+                    <Settings />
+                  </ProtectedAdminRoute>
+                } />
+                
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </UsersProvider>
       </TicketsProvider>
     </AuthProvider>
   </QueryClientProvider>

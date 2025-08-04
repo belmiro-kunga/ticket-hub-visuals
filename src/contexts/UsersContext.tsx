@@ -14,6 +14,7 @@ export interface User {
   ticketsAssigned?: number;
   ticketsResolved?: number;
   avatar?: string;
+  defaultPriority?: 'baixa' | 'media' | 'alta' | 'urgente';
   permissions?: string[];
 }
 
@@ -24,6 +25,7 @@ export interface CreateUserData {
   phone?: string;
   department: string;
   role: 'admin' | 'user';
+  defaultPriority?: 'baixa' | 'media' | 'alta' | 'urgente';
 }
 
 export interface UpdateUserData {

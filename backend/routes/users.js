@@ -22,7 +22,7 @@ router.get('/', authenticateToken, requireAdmin, async (req, res) => {
     const query = `
       SELECT 
         id, name, email, phone, department, role, is_active, 
-        created_at, last_login, avatar,
+        created_at, last_login, avatar, default_priority,
         (SELECT COUNT(*) FROM tickets WHERE assigned_to = users.id) as tickets_assigned,
         (SELECT COUNT(*) FROM tickets WHERE assigned_to = users.id AND status = 'resolvido') as tickets_resolved
       FROM users 
@@ -44,6 +44,7 @@ router.get('/', authenticateToken, requireAdmin, async (req, res) => {
       ticketsAssigned: parseInt(user.tickets_assigned) || 0,
       ticketsResolved: parseInt(user.tickets_resolved) || 0,
       avatar: user.avatar,
+      defaultPriority: user.default_priority,
       permissions: [] // TODO: Implement permissions system
     }));
     
@@ -118,7 +119,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Create new user (admin only)
 router.post('/', authenticateToken, requireAdmin, createUserLimiter, async (req, res) => {
   try {
-    const { name, email, password, phone, department, role } = req.body;
+    const { name, email, password, phone, department, role, defaultPriority } = req.body;
     
     // Validate required fields
     if (!name || !email || !password || !department || !role) {
@@ -146,6 +147,16 @@ router.post('/', authenticateToken, requireAdmin, createUserLimiter, async (req,
       });
     }
     
+    // Validate priority (optional, defaults to 'media')
+    const validPriorities = ['baixa', 'media', 'alta', 'urgente'];
+    const priority = defaultPriority || 'media';
+    if (!validPriorities.includes(priority)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Prioridade inválida. Use: baixa, media, alta ou urgente' 
+      });
+    }
+    
     // Check if email already exists
     const existingUser = await db.query(
       'SELECT id FROM users WHERE email = $1',
@@ -169,16 +180,16 @@ router.post('/', authenticateToken, requireAdmin, createUserLimiter, async (req,
     // Insert new user
     const insertQuery = `
       INSERT INTO users (
-        id, name, email, password_hash, phone, department, role, 
+        id, name, email, password_hash, phone, department, role, default_priority,
         is_active, created_at, updated_at
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, true, NOW(), NOW()
-      ) RETURNING id, name, email, phone, department, role, created_at
+        $1, $2, $3, $4, $5, $6, $7, $8, true, NOW(), NOW()
+      ) RETURNING id, name, email, phone, department, role, default_priority, created_at
     `;
     
     const result = await db.query(insertQuery, [
       userId, name, email.toLowerCase(), passwordHash, 
-      phone || null, department, role
+      phone || null, department, role, priority
     ]);
     
     const newUser = result.rows[0];

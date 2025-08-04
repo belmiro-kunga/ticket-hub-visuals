@@ -111,6 +111,25 @@ function UsersPage() {
     return <Badge className={statusInfo.className}>{statusInfo.label}</Badge>;
   };
 
+  const getPriorityBadge = (priority?: User['defaultPriority']) => {
+    if (!priority) return <Badge className="bg-gray-100 text-gray-800">Não definida</Badge>;
+    
+    const priorityMap = {
+      baixa: { label: 'Baixa', className: 'bg-green-100 text-green-800 hover:bg-green-200', color: 'bg-green-500' },
+      media: { label: 'Média', className: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200', color: 'bg-yellow-500' },
+      alta: { label: 'Alta', className: 'bg-orange-100 text-orange-800 hover:bg-orange-200', color: 'bg-orange-500' },
+      urgente: { label: 'Urgente', className: 'bg-red-100 text-red-800 hover:bg-red-200', color: 'bg-red-500' }
+    };
+
+    const priorityInfo = priorityMap[priority];
+    return (
+      <Badge className={priorityInfo.className}>
+        <div className={`w-2 h-2 rounded-full ${priorityInfo.color} mr-1`}></div>
+        {priorityInfo.label}
+      </Badge>
+    );
+  };
+
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
@@ -305,6 +324,7 @@ function UsersPage() {
                     <TableHead>Função</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Departamento</TableHead>
+                    <TableHead>Prioridade</TableHead>
                     <TableHead>Último Login</TableHead>
                     <TableHead>Data de Cadastro</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
@@ -347,6 +367,7 @@ function UsersPage() {
                         <TableCell>{getRoleBadge(user.role)}</TableCell>
                         <TableCell>{getStatusBadge(user.status)}</TableCell>
                         <TableCell>{user.department}</TableCell>
+                        <TableCell>{getPriorityBadge(user.defaultPriority)}</TableCell>
                         <TableCell>{formatLastLogin(user.lastLogin)}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">

@@ -1,5 +1,16 @@
 import { useState } from "react";
-import { X, User, Mail, Phone, Building, Shield, Eye, EyeOff } from "lucide-react";
+import {
+  User,
+  Mail,
+  Lock,
+  Phone,
+  Building2,
+  Shield,
+  Eye,
+  EyeOff,
+  X,
+  AlertTriangle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,13 +25,14 @@ interface CreateUserModalProps {
 export function CreateUserModal({ isOpen, onClose }: CreateUserModalProps) {
   const { createUser, isLoading, error } = useUsers();
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState<CreateUserData>({
+  const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     phone: '',
     department: '',
-    role: 'user'
+    role: 'user' as 'admin' | 'user',
+    defaultPriority: 'media' as 'baixa' | 'media' | 'alta' | 'urgente'
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -83,7 +95,8 @@ export function CreateUserModal({ isOpen, onClose }: CreateUserModalProps) {
         password: '',
         phone: '',
         department: '',
-        role: 'user'
+        role: 'user',
+        defaultPriority: 'media'
       });
       setFormErrors({});
       onClose();
@@ -105,7 +118,8 @@ export function CreateUserModal({ isOpen, onClose }: CreateUserModalProps) {
       password: '',
       phone: '',
       department: '',
-      role: 'user'
+      role: 'user',
+      defaultPriority: 'media'
     });
     setFormErrors({});
     onClose();
@@ -251,7 +265,7 @@ export function CreateUserModal({ isOpen, onClose }: CreateUserModalProps) {
               Departamento *
             </Label>
             <div className="relative">
-              <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+              <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
               <Select
                 value={formData.department}
                 onValueChange={(value) => handleInputChange('department', value)}
@@ -296,6 +310,56 @@ export function CreateUserModal({ isOpen, onClose }: CreateUserModalProps) {
             {formErrors.role && (
               <p className="text-xs text-red-600 dark:text-red-400">{formErrors.role}</p>
             )}
+          </div>
+
+          {/* Priority */}
+          <div className="space-y-2">
+            <Label htmlFor="priority" className="text-sm font-medium">
+              Prioridade de Atendimento *
+            </Label>
+            <div className="relative">
+              <AlertTriangle className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+              <Select
+                value={formData.defaultPriority}
+                onValueChange={(value: 'baixa' | 'media' | 'alta' | 'urgente') => handleInputChange('defaultPriority', value)}
+              >
+                <SelectTrigger className={`pl-10 ${formErrors.defaultPriority ? 'border-red-500' : ''}`}>
+                  <SelectValue placeholder="Selecione a prioridade padrão" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="baixa">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                      <span>Baixa</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="media">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                      <span>Média</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="alta">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                      <span>Alta</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="urgente">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                      <span>Urgente</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {formErrors.defaultPriority && (
+              <p className="text-xs text-red-600 dark:text-red-400">{formErrors.defaultPriority}</p>
+            )}
+            <p className="text-xs text-gray-500">
+              Esta será a prioridade padrão para os tickets criados por este usuário
+            </p>
           </div>
 
           {/* Actions */}

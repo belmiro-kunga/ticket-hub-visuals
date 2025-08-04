@@ -224,7 +224,7 @@ router.post('/', authenticateToken, requireAdmin, createUserLimiter, async (req,
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, department, role, status } = req.body;
+    const { name, email, password, phone, department, role, status, defaultPriority } = req.body;
     
     // Users can only update their own profile unless they're admin
     const isOwnProfile = req.user.id === id;
@@ -308,6 +308,23 @@ router.put('/:id', authenticateToken, async (req, res) => {
       values.push(status === 'active');
     }
     
+    if (password) {
+      // Hash the new password
+      const saltRounds = 12;
+      const passwordHash = await bcrypt.hash(password, saltRounds);
+      updates.push(`password_hash = $${paramCount++}`);
+      values.push(passwordHash);
+    }
+    
+    if (defaultPriority) {
+      // Validate priority
+      const validPriorities = ['baixa', 'media', 'alta', 'urgente'];
+      if (validPriorities.includes(defaultPriority)) {
+        updates.push(`default_priority = $${paramCount++}`);
+        values.push(defaultPriority);
+      }
+    }
+    
     if (updates.length === 0) {
       return res.status(400).json({ 
         success: false, 
@@ -322,7 +339,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       UPDATE users 
       SET ${updates.join(', ')}
       WHERE id = $${paramCount}
-      RETURNING id, name, email, phone, department, role, is_active, updated_at
+      RETURNING id, name, email, phone, department, role, is_active, default_priority, updated_at
     `;
     
     const result = await db.query(updateQuery, values);
@@ -341,6 +358,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
         role: updatedUser.role,
         status: updatedUser.is_active ? 'active' : 'inactive',
         department: updatedUser.department,
+        defaultPriority: updatedUser.default_priority,
         updatedAt: updatedUser.updated_at
       }
     });

@@ -43,17 +43,25 @@ import {
   UserPlus,
   Shield,
   Activity,
+  X,
+  AlertTriangle,
 } from "lucide-react";
 import { useUsers, type User } from "@/contexts/UsersContext";
 import { CreateUserModal } from "@/components/modals/CreateUserModal";
+import { EditUserModal } from "@/components/modals/EditUserModal";
 
 function UsersPage() {
-  const { users, stats, isLoading, error, refreshData } = useUsers();
+  const { users, stats, isLoading, error, refreshData, updateUser, deleteUser, testAuthentication } = useUsers();
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   // Get unique departments for filter
   const departments = Array.from(new Set(users.map(user => user.department)));
@@ -62,6 +70,31 @@ function UsersPage() {
   useEffect(() => {
     refreshData();
   }, []);
+
+  // Debug function to test API connection
+  const handleDebugTest = async () => {
+    console.log('🔍 Starting debug test...');
+    setDebugInfo('Testando conexão...');
+    
+    try {
+      // Test health endpoint
+      const healthResponse = await fetch('http://localhost:3001/health');
+      const healthData = await healthResponse.json();
+      setDebugInfo(`Health: ${healthData.success ? 'OK' : 'FALHOU'}`);
+      
+      // Test API test endpoint
+      const testResponse = await fetch('http://localhost:3001/api/test');
+      const testData = await testResponse.json();
+      setDebugInfo(prev => `${prev} | API Test: ${testData.success ? 'OK' : 'FALHOU'}`);
+      
+      // Test authentication
+      const isAuth = await testAuthentication();
+      setDebugInfo(prev => `${prev} | Auth: ${isAuth ? 'OK' : 'FALHOU'}`);
+      
+    } catch (error: any) {
+      setDebugInfo(`Erro: ${error.message}`);
+    }
+  };
 
   // Filter users based on search and filters
   const filteredUsers = users.filter(user => {
@@ -151,6 +184,35 @@ function UsersPage() {
     return new Date(joinDate).toLocaleDateString('pt-BR');
   };
 
+  // Handle edit user
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setIsEditModalOpen(true);
+  };
+
+  // Handle delete user
+  const handleDeleteUser = (user: User) => {
+    setUserToDelete(user);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  // Confirm delete user
+  const confirmDeleteUser = async () => {
+    if (userToDelete) {
+      const success = await deleteUser(userToDelete.id);
+      if (success) {
+        setIsDeleteConfirmOpen(false);
+        setUserToDelete(null);
+      }
+    }
+  };
+
+  // Cancel delete
+  const cancelDelete = () => {
+    setIsDeleteConfirmOpen(false);
+    setUserToDelete(null);
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -200,8 +262,35 @@ function UsersPage() {
               <Plus className="h-4 w-4 mr-2" />
               Novo Usuário
             </Button>
+            <Button 
+              className="bg-blue-500 hover:bg-blue-600 text-white"
+              onClick={handleDebugTest}
+            >
+              Debug Test
+            </Button>
           </div>
         </div>
+
+        {/* Debug Info */}
+        {debugInfo && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-blue-800">Debug Info</h3>
+                  <p className="text-sm text-blue-600">{debugInfo}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDebugInfo('')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -385,11 +474,14 @@ function UsersPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Ações</DropdownMenuLabel>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditUser(user)}>
                                 <Edit className="h-4 w-4 mr-2" />
                                 Editar
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">
+                              <DropdownMenuItem 
+                                className="text-red-600 focus:text-red-600"
+                                onClick={() => handleDeleteUser(user)}
+                              >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Excluir
                               </DropdownMenuItem>
@@ -410,6 +502,96 @@ function UsersPage() {
           isOpen={isCreateModalOpen} 
           onClose={() => setIsCreateModalOpen(false)} 
         />
+
+        {/* Edit User Modal */}
+        <EditUserModal 
+          isOpen={isEditModalOpen} 
+          onClose={() => setIsEditModalOpen(false)}
+          user={selectedUser}
+        />
+
+        {/* Delete Confirmation Modal */}
+        {isDeleteConfirmOpen && userToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={cancelDelete}
+            />
+            
+            {/* Modal */}
+            <div className="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full mx-4">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    Confirmar Exclusão
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Esta ação não pode ser desfeita
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={cancelDelete}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                      <Trash2 className="h-6 w-6 text-red-600 dark:text-red-400" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                      Excluir {userToDelete.name}?
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      O usuário será desativado e não poderá mais acessar o sistema.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-4">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-yellow-800 dark:text-yellow-200">
+                      <p className="font-medium">Atenção:</p>
+                      <p>Esta ação irá desativar o usuário. Todos os tickets atribuídos a ele permanecerão intactos.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={cancelDelete}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={confirmDeleteUser}
+                    className="flex-1"
+                  >
+                    Sim, Excluir
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

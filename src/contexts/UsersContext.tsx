@@ -31,10 +31,12 @@ export interface CreateUserData {
 export interface UpdateUserData {
   name?: string;
   email?: string;
+  password?: string;
   phone?: string;
   department?: string;
   role?: 'admin' | 'user';
-  status?: 'active' | 'inactive';
+  status?: 'active' | 'inactive' | 'suspended';
+  defaultPriority?: 'baixa' | 'media' | 'alta' | 'urgente';
 }
 
 export interface UserStats {
@@ -57,6 +59,7 @@ interface UsersContextType {
   updateUser: (id: string, userData: UpdateUserData) => Promise<boolean>;
   deleteUser: (id: string) => Promise<boolean>;
   refreshData: () => Promise<void>;
+  testAuthentication: () => Promise<boolean>;
 }
 
 const UsersContext = createContext<UsersContextType | undefined>(undefined);
@@ -69,12 +72,93 @@ export const useUsers = () => {
   return context;
 };
 
+// Mock data for development/testing
+const mockUsers: User[] = [
+  {
+    id: '1',
+    name: 'Administrador Sistema',
+    email: 'admin@empresa.com',
+    phone: '+244 900 000 001',
+    role: 'admin',
+    status: 'active',
+    department: 'Tecnologia da Informação',
+    joinDate: '2024-01-01T00:00:00Z',
+    lastLogin: new Date().toISOString(),
+    ticketsAssigned: 15,
+    ticketsResolved: 12,
+    avatar: '',
+    defaultPriority: 'media'
+  },
+  {
+    id: '2',
+    name: 'Gerente Geral',
+    email: 'gerente@empresa.com',
+    phone: '+244 900 000 002',
+    role: 'admin',
+    status: 'active',
+    department: 'Administração',
+    joinDate: '2024-01-02T00:00:00Z',
+    lastLogin: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    ticketsAssigned: 8,
+    ticketsResolved: 7,
+    avatar: '',
+    defaultPriority: 'alta'
+  },
+  {
+    id: '3',
+    name: 'João Silva',
+    email: 'joao.silva@empresa.com',
+    phone: '+244 900 000 003',
+    role: 'user',
+    status: 'active',
+    department: 'Vendas',
+    joinDate: '2024-01-15T00:00:00Z',
+    lastLogin: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    ticketsAssigned: 3,
+    ticketsResolved: 2,
+    avatar: '',
+    defaultPriority: 'baixa'
+  },
+  {
+    id: '4',
+    name: 'Maria Santos',
+    email: 'maria.santos@empresa.com',
+    phone: '+244 900 000 004',
+    role: 'user',
+    status: 'active',
+    department: 'Marketing',
+    joinDate: '2024-01-20T00:00:00Z',
+    lastLogin: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+    ticketsAssigned: 5,
+    ticketsResolved: 4,
+    avatar: '',
+    defaultPriority: 'media'
+  }
+];
+
+const mockStats: UserStats = {
+  total: 4,
+  active: 4,
+  inactive: 0,
+  admins: 2,
+  regular: 2,
+  newThisMonth: 1
+};
+
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 // API Helper Functions
 const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   const token = localStorage.getItem('ticket-hub-token');
+  
+  console.log('🔍 API Call Debug:', {
+    endpoint,
+    baseUrl: API_BASE_URL,
+    fullUrl: `${API_BASE_URL}${endpoint}`,
+    hasToken: !!token,
+    method: options.method || 'GET'
+  });
   
   const config: RequestInit = {
     headers: {
@@ -86,16 +170,31 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   };
 
   try {
+    console.log('📡 Making API request to:', `${API_BASE_URL}${endpoint}`);
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    
+    console.log('📥 Response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+    
     const data = await response.json();
+    console.log('📄 Response data:', data);
     
     if (!response.ok) {
-      throw new Error(data.message || 'Erro na requisição');
+      throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
     }
     
     return data;
   } catch (error) {
-    console.error('API call error:', error);
+    console.error('❌ API call error:', {
+      error: error.message,
+      endpoint,
+      fullUrl: `${API_BASE_URL}${endpoint}`,
+      stack: error.stack
+    });
     throw error;
   }
 };
@@ -145,22 +244,36 @@ export function UsersProvider({ children }: { children: ReactNode }) {
 
   const fetchUsers = async () => {
     if (!currentUser || currentUser.role !== 'admin') {
+      console.log('🚫 User not admin, skipping fetchUsers:', {
+        currentUser: currentUser?.email,
+        role: currentUser?.role
+      });
       return;
     }
 
+    console.log('🔄 Starting fetchUsers...');
     setIsLoading(true);
     setError(null);
     
     try {
       const response = await usersService.getUsers();
+      console.log('✅ fetchUsers success:', response);
       if (response.success) {
         setUsers(response.users);
       } else {
         setError(response.message || 'Erro ao carregar usuários');
       }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      setError('Erro ao conectar com o servidor');
+    } catch (error: any) {
+      console.error('❌ Error fetching users:', {
+        message: error.message,
+        stack: error.stack,
+        currentUser: currentUser?.email
+      });
+      
+      // Use mock data as fallback for development
+      console.log('🔄 Using mock data as fallback...');
+      setUsers(mockUsers);
+      setError(`Erro ao conectar com o servidor: ${error.message}. Usando dados de exemplo.`);
     } finally {
       setIsLoading(false);
     }
@@ -168,16 +281,30 @@ export function UsersProvider({ children }: { children: ReactNode }) {
 
   const fetchUserStats = async () => {
     if (!currentUser || currentUser.role !== 'admin') {
+      console.log('🚫 User not admin, skipping fetchUserStats:', {
+        currentUser: currentUser?.email,
+        role: currentUser?.role
+      });
       return;
     }
 
+    console.log('🔄 Starting fetchUserStats...');
     try {
       const response = await usersService.getUserStats();
+      console.log('✅ fetchUserStats success:', response);
       if (response.success) {
         setStats(response.stats);
       }
-    } catch (error) {
-      console.error('Error fetching user stats:', error);
+    } catch (error: any) {
+      console.error('❌ Error fetching user stats:', {
+        message: error.message,
+        stack: error.stack,
+        currentUser: currentUser?.email
+      });
+      
+      // Use mock stats as fallback for development
+      console.log('🔄 Using mock stats as fallback...');
+      setStats(mockStats);
     }
   };
 
@@ -251,14 +378,65 @@ export function UsersProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const testAuthentication = async () => {
+    const token = localStorage.getItem('ticket-hub-token');
+    console.log('🔐 Testing authentication:', {
+      hasToken: !!token,
+      tokenLength: token?.length,
+      currentUser: currentUser?.email,
+      role: currentUser?.role
+    });
+    
+    if (!token) {
+      console.log('❌ No token found');
+      return false;
+    }
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      console.log('🔐 Auth verification result:', data);
+      
+      return data.success;
+    } catch (error) {
+      console.error('❌ Auth verification failed:', error);
+      return false;
+    }
+  };
+
   const refreshData = async () => {
+    console.log('🔄 refreshData called');
+    
+    // Test authentication first
+    const isAuthenticated = await testAuthentication();
+    if (!isAuthenticated) {
+      console.log('❌ User not authenticated, skipping data refresh');
+      return;
+    }
+    
     await Promise.all([fetchUsers(), fetchUserStats()]);
   };
 
   // Load users and stats when component mounts or user changes
   useEffect(() => {
+    console.log('🔄 UsersContext useEffect triggered:', {
+      currentUser: currentUser?.email,
+      role: currentUser?.role,
+      isAuthenticated: !!currentUser
+    });
+    
     if (currentUser && currentUser.role === 'admin') {
+      console.log('✅ User is admin, refreshing data...');
       refreshData();
+    } else {
+      console.log('❌ User is not admin or not authenticated');
     }
   }, [currentUser]);
 
@@ -273,6 +451,7 @@ export function UsersProvider({ children }: { children: ReactNode }) {
     updateUser,
     deleteUser,
     refreshData,
+    testAuthentication,
   };
 
   return (

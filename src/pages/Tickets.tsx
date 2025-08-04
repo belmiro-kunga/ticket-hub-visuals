@@ -183,34 +183,38 @@ const Tickets = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header Section */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground flex items-center">
-              <Ticket className="h-8 w-8 mr-3 text-primary" />
-              Gerenciamento de Tickets
+            <h1 className="text-2xl lg:text-3xl font-bold text-foreground flex items-center">
+              <Ticket className="h-6 w-6 lg:h-8 lg:w-8 mr-2 lg:mr-3 text-primary" />
+              <span className="hidden sm:inline">Gerenciamento de Tickets</span>
+              <span className="sm:hidden">Tickets</span>
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm lg:text-base">
               Gerencie todos os tickets de suporte do sistema
             </p>
           </div>
-          <div className="flex space-x-2">
-            <Button variant="outline">
+          <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto">
               <Download className="h-4 w-4 mr-2" />
-              Exportar
+              <span className="hidden sm:inline">Exportar</span>
+              <span className="sm:hidden">Export</span>
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" className="w-full sm:w-auto">
               <RefreshCw className="h-4 w-4 mr-2" />
-              Atualizar
+              <span className="hidden sm:inline">Atualizar</span>
+              <span className="sm:hidden">Refresh</span>
             </Button>
-            <Button className="bg-primary hover:bg-primary/90">
+            <Button className="bg-primary hover:bg-primary/90 w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
-              Novo Ticket
+              <span className="hidden sm:inline">Novo Ticket</span>
+              <span className="sm:hidden">Novo</span>
             </Button>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -335,43 +339,43 @@ const Tickets = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
-              <Table>
+            <div className="rounded-md border overflow-x-auto">
+              <Table className="min-w-[800px]">
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">ID</TableHead>
-                    <TableHead className="font-semibold">Assunto</TableHead>
-                    <TableHead className="font-semibold">Cliente</TableHead>
-                    <TableHead className="font-semibold">Categoria</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
-                    <TableHead className="font-semibold">Prioridade</TableHead>
-                    <TableHead className="font-semibold">Responsável</TableHead>
-                    <TableHead className="font-semibold">Criado</TableHead>
-                    <TableHead className="font-semibold">Ações</TableHead>
+                    <TableHead className="font-semibold w-20">ID</TableHead>
+                    <TableHead className="font-semibold min-w-[200px]">Assunto</TableHead>
+                    <TableHead className="font-semibold min-w-[120px]">Cliente</TableHead>
+                    <TableHead className="font-semibold w-24 hidden sm:table-cell">Categoria</TableHead>
+                    <TableHead className="font-semibold w-24">Status</TableHead>
+                    <TableHead className="font-semibold w-24">Prioridade</TableHead>
+                    <TableHead className="font-semibold min-w-[120px] hidden md:table-cell">Responsável</TableHead>
+                    <TableHead className="font-semibold w-24 hidden lg:table-cell">Criado</TableHead>
+                    <TableHead className="font-semibold w-20">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredTickets.map((ticket) => (
                     <TableRow key={ticket.id} className="hover:bg-muted/50">
-                      <TableCell className="font-medium">{ticket.id}</TableCell>
+                      <TableCell className="font-medium text-xs sm:text-sm">{ticket.id}</TableCell>
                       <TableCell className="max-w-xs">
-                        <div className="truncate" title={ticket.subject}>
+                        <div className="truncate text-xs sm:text-sm" title={ticket.subject}>
                           {ticket.subject}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center">
-                          <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                          {ticket.customer}
+                        <div className="flex items-center text-xs sm:text-sm">
+                          <User className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 text-muted-foreground" />
+                          <span className="truncate">{ticket.customer}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{ticket.category}</Badge>
+                      <TableCell className="hidden sm:table-cell">
+                        <Badge variant="outline" className="text-xs">{ticket.category}</Badge>
                       </TableCell>
                       <TableCell>{getStatusBadge(ticket.status)}</TableCell>
                       <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
-                      <TableCell>{ticket.assignee}</TableCell>
-                      <TableCell>{new Date(ticket.created).toLocaleDateString('pt-BR')}</TableCell>
+                      <TableCell className="hidden md:table-cell text-xs sm:text-sm">{ticket.assignee}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-xs">{new Date(ticket.created).toLocaleDateString('pt-BR')}</TableCell>
                       <TableCell>
                         <div className="flex space-x-1">
                           <Dialog>

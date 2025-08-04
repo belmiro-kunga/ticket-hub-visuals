@@ -19,21 +19,22 @@ const Index = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header Section */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">
               Visão geral do sistema de tickets de suporte
             </p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90">
+          <Button className="bg-primary hover:bg-primary/90 w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
-            Novo Ticket
+            <span className="hidden sm:inline">Novo Ticket</span>
+            <span className="sm:hidden">Novo</span>
           </Button>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           <StatCard
             title="Total de Tickets"
             value="1,234"

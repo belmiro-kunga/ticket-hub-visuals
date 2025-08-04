@@ -65,21 +65,22 @@ export default function SettingsPage() {
   return (
     <DashboardLayout>
       <div className="flex-1 space-y-6 p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Configurações</h2>
-            <p className="text-muted-foreground">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Configurações</h2>
+            <p className="text-muted-foreground text-sm sm:text-base">
               Gerencie todas as configurações da aplicação
             </p>
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2 w-full sm:w-auto">
             <Save className="h-4 w-4" />
-            Salvar Alterações
+            <span className="hidden sm:inline">Salvar Alterações</span>
+            <span className="sm:hidden">Salvar</span>
           </Button>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1">
             <TabsTrigger value="general" className="gap-2">
               <SettingsIcon className="h-4 w-4" />
               Geral

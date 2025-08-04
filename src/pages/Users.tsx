@@ -47,11 +47,13 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useUsers, type User } from "@/contexts/UsersContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { CreateUserModal } from "@/components/modals/CreateUserModal";
 import { EditUserModal } from "@/components/modals/EditUserModal";
 
 function UsersPage() {
   const { users, stats, isLoading, error, refreshData, updateUser, deleteUser, testAuthentication } = useUsers();
+  const { user: currentUser, isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -91,8 +93,88 @@ function UsersPage() {
       const isAuth = await testAuthentication();
       setDebugInfo(prev => `${prev} | Auth: ${isAuth ? 'OK' : 'FALHOU'}`);
       
+      // Check current user info
+      const token = localStorage.getItem('ticket-hub-token');
+      const savedUser = localStorage.getItem('ticket-hub-user');
+      setDebugInfo(prev => `${prev} | Token: ${token ? 'SIM' : 'NÃO'} | User: ${savedUser ? 'SIM' : 'NÃO'}`);
+      
     } catch (error: any) {
       setDebugInfo(`Erro: ${error.message}`);
+    }
+  };
+
+  // Test users API specifically
+  const handleTestUsersAPI = async () => {
+    console.log('🔍 Testing users API...');
+    setDebugInfo('Testando API de usuários...');
+    
+    try {
+      const token = localStorage.getItem('ticket-hub-token');
+      
+      if (!token) {
+        setDebugInfo('❌ Nenhum token encontrado');
+        return;
+      }
+      
+      const response = await fetch('http://localhost:3001/api/users', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      console.log('📄 Users API response:', data);
+      
+      if (response.ok) {
+        setDebugInfo(`✅ API de usuários OK - ${data.users?.length || 0} usuários encontrados`);
+      } else {
+        setDebugInfo(`❌ API de usuários falhou: ${data.message || response.statusText}`);
+      }
+      
+    } catch (error: any) {
+      setDebugInfo(`❌ Erro na API de usuários: ${error.message}`);
+    }
+  };
+
+  // Test admin login
+  const handleTestAdminLogin = async () => {
+    console.log('🔍 Testing admin login...');
+    setDebugInfo('Testando login como admin...');
+    
+    try {
+      const response = await fetch('http://localhost:3001/api/auth/login-admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: 'admin@empresa.com',
+          password: 'admin123'
+        })
+      });
+      
+      const data = await response.json();
+      console.log('📄 Admin login response:', data);
+      
+      if (response.ok && data.success) {
+        // Store the token and user data
+        localStorage.setItem('ticket-hub-token', data.token);
+        localStorage.setItem('ticket-hub-user', JSON.stringify(data.user));
+        
+        setDebugInfo(`✅ Login admin OK - Token: ${data.token ? 'SIM' : 'NÃO'}`);
+        
+        // Refresh the page to update the context
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        setDebugInfo(`❌ Login admin falhou: ${data.message || response.statusText}`);
+      }
+      
+    } catch (error: any) {
+      setDebugInfo(`❌ Erro no login admin: ${error.message}`);
     }
   };
 
@@ -262,16 +344,55 @@ function UsersPage() {
               <Plus className="h-4 w-4 mr-2" />
               Novo Usuário
             </Button>
+            {/* Debug buttons - uncomment if needed
             <Button 
               className="bg-blue-500 hover:bg-blue-600 text-white"
               onClick={handleDebugTest}
             >
               Debug Test
             </Button>
+            <Button 
+              className="bg-green-500 hover:bg-green-600 text-white"
+              onClick={handleTestUsersAPI}
+            >
+              Test Users API
+            </Button>
+            <Button 
+              className="bg-purple-500 hover:bg-purple-600 text-white"
+              onClick={handleTestAdminLogin}
+            >
+              Test Admin Login
+            </Button>
+            */}
           </div>
         </div>
 
+        {/* Current User Info */}
+        {/* Uncomment if needed
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-orange-800">Status da Sessão</h3>
+                <p className="text-sm text-orange-600">
+                  Usuário: {currentUser?.name || 'Não logado'} | 
+                  Email: {currentUser?.email || 'N/A'} | 
+                  Função: {currentUser?.role || 'N/A'} | 
+                  Autenticado: {isAuthenticated ? 'SIM' : 'NÃO'}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-orange-600">
+                  Token: {localStorage.getItem('ticket-hub-token') ? 'Presente' : 'Ausente'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        */}
+
         {/* Debug Info */}
+        {/* Uncomment if needed
         {debugInfo && (
           <Card className="border-blue-200 bg-blue-50">
             <CardContent className="p-4">
@@ -291,6 +412,7 @@ function UsersPage() {
             </CardContent>
           </Card>
         )}
+        */}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

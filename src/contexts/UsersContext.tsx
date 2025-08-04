@@ -270,10 +270,8 @@ export function UsersProvider({ children }: { children: ReactNode }) {
         currentUser: currentUser?.email
       });
       
-      // Use mock data as fallback for development
-      console.log('🔄 Using mock data as fallback...');
-      setUsers(mockUsers);
-      setError(`Erro ao conectar com o servidor: ${error.message}. Usando dados de exemplo.`);
+      // Don't use mock data, show real error
+      setError(`Erro ao conectar com o servidor: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -302,9 +300,8 @@ export function UsersProvider({ children }: { children: ReactNode }) {
         currentUser: currentUser?.email
       });
       
-      // Use mock stats as fallback for development
-      console.log('🔄 Using mock stats as fallback...');
-      setStats(mockStats);
+      // Don't use mock stats, let it fail
+      console.log('❌ Failed to fetch user stats, keeping current stats');
     }
   };
 

@@ -372,7 +372,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete user (admin only)
+// Delete user (admin only) - Soft delete (deactivate)
 router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -417,6 +417,104 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Erro interno do servidor ao excluir usuário' 
+    });
+  }
+});
+
+// Hard delete user (admin only) - Permanently remove from database
+router.delete('/:id/hard', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Prevent admin from deleting themselves
+    if (req.user.id === id) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Não é possível excluir sua própria conta' 
+      });
+    }
+    
+    // Check if user exists
+    const existingUser = await db.query(
+      'SELECT id, name, email FROM users WHERE id = $1',
+      [id]
+    );
+    
+    if (existingUser.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Usuário não encontrado' 
+      });
+    }
+    
+    // Permanently delete the user
+    await db.query(
+      'DELETE FROM users WHERE id = $1',
+      [id]
+    );
+    
+    const user = existingUser.rows[0];
+    console.log(`🗑️ User permanently deleted: ${user.email}`);
+    
+    res.json({ 
+      success: true, 
+      message: 'Usuário excluído permanentemente' 
+    });
+    
+  } catch (error) {
+    console.error('❌ Error hard deleting user:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Erro interno do servidor ao excluir usuário' 
+    });
+  }
+});
+
+// Reactivate user (admin only)
+router.patch('/:id/reactivate', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if user exists
+    const existingUser = await db.query(
+      'SELECT id, name, email, is_active FROM users WHERE id = $1',
+      [id]
+    );
+    
+    if (existingUser.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Usuário não encontrado' 
+      });
+    }
+    
+    const user = existingUser.rows[0];
+    
+    if (user.is_active) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Usuário já está ativo' 
+      });
+    }
+    
+    // Reactivate the user
+    await db.query(
+      'UPDATE users SET is_active = true, updated_at = NOW() WHERE id = $1',
+      [id]
+    );
+    
+    console.log(`✅ User reactivated: ${user.email}`);
+    
+    res.json({ 
+      success: true, 
+      message: 'Usuário reativado com sucesso' 
+    });
+    
+  } catch (error) {
+    console.error('❌ Error reactivating user:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Erro interno do servidor ao reativar usuário' 
     });
   }
 });

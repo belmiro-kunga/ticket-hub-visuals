@@ -278,6 +278,14 @@ function UsersPage() {
     setIsDeleteConfirmOpen(true);
   };
 
+  // Handle reactivate user
+  const handleReactivateUser = async (userId: string) => {
+    const success = await updateUser(userId, { status: 'active' });
+    if (success) {
+      refreshData();
+    }
+  };
+
   // Confirm delete user
   const confirmDeleteUser = async () => {
     if (userToDelete) {
@@ -286,6 +294,53 @@ function UsersPage() {
         setIsDeleteConfirmOpen(false);
         setUserToDelete(null);
       }
+    }
+  };
+
+  // Handle soft delete (deactivate user)
+  const handleSoftDelete = async (userId: string) => {
+    console.log('🔄 Attempting to deactivate user:', userId);
+    const success = await deleteUser(userId);
+    if (success) {
+      console.log('✅ User deactivated successfully');
+      setIsDeleteConfirmOpen(false);
+      setUserToDelete(null);
+      // Refresh data to show updated status
+      refreshData();
+    } else {
+      console.error('❌ Failed to deactivate user');
+      alert('Erro ao desativar usuário');
+    }
+  };
+
+  // Handle hard delete (permanently remove user)
+  const handleHardDelete = async (userId: string) => {
+    try {
+      const token = localStorage.getItem('ticket-hub-token');
+      
+      const response = await fetch(`http://localhost:3001/api/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        console.log('✅ User deleted successfully');
+        // Refresh the data to update the list
+        refreshData();
+        setIsDeleteConfirmOpen(false);
+        setUserToDelete(null);
+      } else {
+        console.error('❌ Error deleting user:', data.message);
+        alert(`Erro ao excluir usuário: ${data.message}`);
+      }
+    } catch (error) {
+      console.error('❌ Error deleting user:', error);
+      alert('Erro ao conectar com o servidor');
     }
   };
 
@@ -600,6 +655,15 @@ function UsersPage() {
                                 <Edit className="h-4 w-4 mr-2" />
                                 Editar
                               </DropdownMenuItem>
+                              {user.status === 'inactive' && (
+                                <DropdownMenuItem 
+                                  className="text-green-600 focus:text-green-600"
+                                  onClick={() => handleReactivateUser(user.id)}
+                                >
+                                  <UserCheck className="h-4 w-4 mr-2" />
+                                  Reativar
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem 
                                 className="text-red-600 focus:text-red-600"
                                 onClick={() => handleDeleteUser(user)}
@@ -647,10 +711,10 @@ function UsersPage() {
               <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                    Confirmar Exclusão
+                    Gerenciar Usuário
                   </h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Esta ação não pode ser desfeita
+                    Escolha como gerenciar {userToDelete.name}
                   </p>
                 </div>
                 <Button
@@ -673,26 +737,40 @@ function UsersPage() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                      Excluir {userToDelete.name}?
+                      {userToDelete.name}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      O usuário será desativado e não poderá mais acessar o sistema.
+                      {userToDelete.email}
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-4">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
-                    <div className="text-sm text-yellow-800 dark:text-yellow-200">
-                      <p className="font-medium">Atenção:</p>
-                      <p>Esta ação irá desativar o usuário. Todos os tickets atribuídos a ele permanecerão intactos.</p>
+                <div className="space-y-3">
+                  {/* Soft Delete Option */}
+                  <div className="border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 bg-yellow-50 dark:bg-yellow-900/20">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm text-yellow-800 dark:text-yellow-200">
+                        <p className="font-medium">Desativar Usuário (Recomendado)</p>
+                        <p>O usuário será desativado e não poderá mais acessar o sistema, mas os dados serão preservados.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Hard Delete Option */}
+                  <div className="border border-red-200 dark:border-red-800 rounded-lg p-3 bg-red-50 dark:bg-red-900/20">
+                    <div className="flex items-start gap-2">
+                      <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm text-red-800 dark:text-red-200">
+                        <p className="font-medium">Excluir Permanentemente</p>
+                        <p>O usuário será removido completamente do banco de dados. Esta ação não pode ser desfeita.</p>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-3">
+                <div className="flex gap-3 mt-6">
                   <Button
                     type="button"
                     variant="outline"
@@ -703,11 +781,19 @@ function UsersPage() {
                   </Button>
                   <Button
                     type="button"
+                    variant="outline"
+                    onClick={() => handleSoftDelete(userToDelete.id)}
+                    className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white"
+                  >
+                    Desativar
+                  </Button>
+                  <Button
+                    type="button"
                     variant="destructive"
-                    onClick={confirmDeleteUser}
+                    onClick={() => handleHardDelete(userToDelete.id)}
                     className="flex-1"
                   >
-                    Sim, Excluir
+                    Excluir
                   </Button>
                 </div>
               </div>

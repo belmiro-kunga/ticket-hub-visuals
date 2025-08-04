@@ -32,7 +32,7 @@ export function DashboardSidebar() {
   return (
     <aside
       className={cn(
-        "bg-sidebar text-sidebar-foreground transition-all duration-300 flex flex-col",
+        "bg-sidebar text-sidebar-foreground transition-all duration-300 flex flex-col h-screen",
         collapsed ? "w-16" : "w-64"
       )}
     >
